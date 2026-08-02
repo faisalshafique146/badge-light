@@ -1,0 +1,32 @@
+{
+  "frames": {
+    "scanner_beam_0": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 14,
+        "h": 6
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 14,
+        "h": 6
+      },
+      "sourceSize": {
+        "w": 14,
+        "h": 6
+      }
+    }
+  },
+  "meta": {
+    "image": "scanner-beam.png",
+    "size": {
+      "w": 14,
+      "h": 6
+    },
+    "scale": "1"
+  }
+}
