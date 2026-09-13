@@ -71,7 +71,13 @@ export default class MenuScene extends Phaser.Scene {
     this.input.once('pointerdown', this.startGame, this);
 
     // Used only for automated release screenshots and smoke tests.
-    if (new URLSearchParams(window.location.search).has('capture')) {
+    const captureMode = new URLSearchParams(window.location.search).get('capture');
+    if (captureMode === 'victory') {
+      this.scene.start('GameOverScene', {
+        outcome: 'win',
+        score: { enemiesDefeated: 14, kiosksPowered: 4, total: 3400, best: 3400 },
+      });
+    } else if (captureMode) {
       this.startGame();
     }
   }

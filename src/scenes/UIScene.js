@@ -4,9 +4,9 @@ const HP_PIP_COUNT = 5;
 const LIGHT_BAR_WIDTH = 100;
 const LIGHT_BAR_HEIGHT = 6;
 
-const DPAD_BUTTON_SIZE = 20; // px, each directional pad in the cross
-const DPAD_SPACING = 16; // px, distance from cross center to each button
-const ACTION_BUTTON_RADIUS = 14; // px, broom/scanner touch buttons
+const DPAD_BUTTON_SIZE = 34; // large enough for reliable phone input after FIT scaling
+const DPAD_SPACING = 25; // distance from cross center to each button
+const ACTION_BUTTON_RADIUS = 20; // broom/scanner/use touch buttons
 
 const CONTROLS_LINES = [
   'ARROW KEYS   Move',
@@ -224,20 +224,30 @@ export default class UIScene extends Phaser.Scene {
     };
 
     this.muteButton = this.add
-      .text(0, 0, 'SND', style)
+      .zone(0, 0, 34, 30)
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2100)
       .setInteractive({ useHandCursor: true });
     this.muteButton.on('pointerdown', () => this.events.emit('toggle-mute'));
+    this.muteLabel = this.add
+      .text(0, 0, 'SND', style)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2101);
 
     this.pauseButton = this.add
-      .text(0, 0, 'II', style)
+      .zone(0, 0, 34, 30)
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(2100)
       .setInteractive({ useHandCursor: true });
     this.pauseButton.on('pointerdown', () => this.events.emit('toggle-pause'));
+    this.pauseLabel = this.add
+      .text(0, 0, 'II', style)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2101);
   }
 
   buildPauseOverlay() {
@@ -273,8 +283,7 @@ export default class UIScene extends Phaser.Scene {
   }
 
   handleMuteChanged(muted) {
-    this.muteButton.setText(muted ? 'MUTE' : 'SND');
-    this.layout();
+    this.muteLabel.setText(muted ? 'MUTE' : 'SND');
   }
 
   emitTogglePause() {
@@ -440,8 +449,8 @@ export default class UIScene extends Phaser.Scene {
     this.lightBarFill.setPosition(barX, barY);
 
     // Bottom-left: virtual d-pad.
-    const dpadCenterX = 26;
-    const dpadCenterY = cam.height - 26;
+    const dpadCenterX = 42;
+    const dpadCenterY = cam.height - 42;
     this.dpadButtons.up.setPosition(dpadCenterX, dpadCenterY - DPAD_SPACING);
     this.dpadButtons.down.setPosition(dpadCenterX, dpadCenterY + DPAD_SPACING);
     this.dpadButtons.left.setPosition(dpadCenterX - DPAD_SPACING, dpadCenterY);
@@ -451,16 +460,24 @@ export default class UIScene extends Phaser.Scene {
     });
 
     // Bottom-right: broom + scanner action buttons, stacked vertically.
-    const actionX = cam.width - 22;
-    this.broomButton.setPosition(actionX, cam.height - 48);
-    this.scannerButton.setPosition(actionX, cam.height - 16);
-    this.useButton.setPosition(actionX - 34, cam.height - 16);
+    const actionX = cam.width - 24;
+    this.broomButton.setPosition(actionX, cam.height - 68);
+    this.scannerButton.setPosition(actionX, cam.height - 22);
+    this.useButton.setPosition(actionX - 46, cam.height - 22);
     this.broomLabel.setPosition(this.broomButton.x, this.broomButton.y);
     this.scannerLabel.setPosition(this.scannerButton.x, this.scannerButton.y);
     this.useLabel.setPosition(this.useButton.x, this.useButton.y);
 
-    this.pauseButton.setPosition(cam.width - 4, 24);
-    this.muteButton.setPosition(this.pauseButton.x - this.pauseButton.width - 4, 24);
+    this.pauseButton.setPosition(cam.width - 4, 22);
+    this.muteButton.setPosition(this.pauseButton.x - this.pauseButton.width - 4, 22);
+    this.pauseLabel.setPosition(
+      this.pauseButton.x - this.pauseButton.width / 2,
+      this.pauseButton.y + this.pauseButton.height / 2
+    );
+    this.muteLabel.setPosition(
+      this.muteButton.x - this.muteButton.width / 2,
+      this.muteButton.y + this.muteButton.height / 2
+    );
 
     this.pauseBg.setSize(cam.width, cam.height);
     this.pauseText.setPosition(cam.width / 2, cam.height / 2);

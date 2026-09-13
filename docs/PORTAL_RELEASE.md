@@ -10,7 +10,7 @@ This release intentionally keeps portal integrations isolated. Each portal gets 
 | CrazyGames | `release/badge-light-crazygames.zip` | CrazyGames SDK v3 |
 | Kongregate | `release/badge-light-kongregate.zip` | Kongregate JavaScript API |
 
-Every ZIP contains `index.html` at its root. The game has a native 320 x 288 landscape playfield and scales responsively. Use 960 x 864 as a roomy desktop embed size when the portal requests dimensions.
+Every ZIP contains `index.html` at its root. The game has a native 320 x 288 landscape playfield and scales responsively. See `docs/PLATFORM_SUBMISSION_DETAILS.md` for exact form values, platform-specific copy, compliance checks, and remaining media work.
 
 ## Before publishing
 
@@ -23,9 +23,9 @@ Every ZIP contains `index.html` at its root. The game has a native 320 x 288 lan
 
 1. Create a new project and choose **HTML** as the project kind.
 2. Upload `release/badge-light-itch.zip` and mark it as the file to be played in the browser.
-3. Use an embedded frame sized around 960 x 864, allow fullscreen, and enable the mobile-friendly option after checking it on a phone.
+3. Use an 800 x 720 embedded frame, allow fullscreen, and enable the mobile-friendly option after checking it on a phone.
 4. Upload `release/store-assets/itch-cover-630x500.png` as the cover.
-5. Paste the text from `docs/STORE_COPY.md`, choose the listed tags, and select **Donations** or **Paid** according to your pricing plan.
+5. Paste the itch.io text from `docs/PLATFORM_SUBMISSION_DETAILS.md`, choose the listed tags, and use **$0 or donate**. itch.io currently treats browser-playable HTML5 payments as donations; paid access requires changing the project to Downloadable.
 6. Keep the page restricted or in draft while testing, then publish it publicly.
 
 ## CrazyGames
@@ -35,16 +35,17 @@ Every ZIP contains `index.html` at its root. The game has a native 320 x 288 lan
    - `crazygames-cover-landscape-1920x1080.png`
    - `crazygames-cover-portrait-800x1200.png`
    - `crazygames-cover-square-800x800.png`
-3. Use the title, description, controls, and tags from `docs/STORE_COPY.md`.
-4. The build already reports loading and gameplay state, obeys the portal mute setting, stores progress through the data module when available, reports a completed shift, and requests a midgame ad only after a run ends.
-5. Test with the CrazyGames preview tooling. Confirm that game audio pauses during ads and that restart becomes available when an ad finishes or errors.
-6. Submit for review. Revenue activation and launch-ad behavior are controlled by CrazyGames and your portal eligibility; this build does not force an ad at startup.
+3. Record the two required silent 15-20 second preview videos described in `docs/PLATFORM_SUBMISSION_DETAILS.md` (landscape 16:9 and portrait 2:3).
+4. Use the title, description, controls, and tags from `docs/PLATFORM_SUBMISSION_DETAILS.md`.
+5. The build already reports loading and gameplay state, obeys the portal mute setting, stores progress through the data module when available, reports a completed shift, and requests a midgame ad only after a run ends.
+6. Test with the CrazyGames preview tooling. Confirm that game audio pauses during ads and that restart becomes available when an ad finishes or errors.
+7. Submit for review. Revenue activation and launch-ad behavior are controlled by CrazyGames and your portal eligibility; this build does not force an ad at startup.
 
 ## Kongregate
 
 1. Add a new HTML5 game and upload `release/badge-light-kongregate.zip` as the game file.
-2. Set the game dimensions to 960 x 864 if the form requires fixed dimensions, then use the portal preview to verify scaling.
-3. Upload `release/store-assets/kongregate-icon-630x500.png` as the game icon and use `release/gameplay-preview.png` plus `release/menu-preview.png` as screenshots.
+2. If dimension fields are shown, use 640 x 576 minimum and 800 x 720 maximum with **Scale to fit container** enabled.
+3. Upload `release/store-assets/kongregate-icon-630x500.png` as the game icon and the three files listed in `docs/PLATFORM_SUBMISSION_DETAILS.md` as screenshots.
 4. Configure these statistics before launch:
 
 | Statistic | Suggested type | Submitted value |

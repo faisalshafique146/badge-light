@@ -37,7 +37,7 @@ This creates independent single-file builds:
 - `release/crazygames/index.html` - CrazyGames SDK v3, lifecycle events, mute policy, cloud-compatible storage, completion events, and a midgame ad break between runs.
 - `release/kongregate/index.html` - Kongregate JavaScript API and four gameplay statistics.
 
-The game contains no platform exclusivity checks, external account requirement, in-game purchase system, or developer-operated backend. See `docs/PORTAL_RELEASE.md` for submission instructions and `docs/STORE_COPY.md` for ready-to-paste listing text.
+The game contains no platform exclusivity checks, external account requirement, in-game purchase system, or developer-operated backend. See `docs/PORTAL_RELEASE.md` for the release flow and `docs/PLATFORM_SUBMISSION_DETAILS.md` for exact portal form values, platform-specific listing copy, mobile notes, and compliance checks.
 
 ## Assets
 

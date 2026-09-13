@@ -50,7 +50,17 @@ const config = {
 async function startGame() {
   await portalBridge.init();
   portalBridge.loadingStart();
-  new Phaser.Game(config);
+  const game = new Phaser.Game(config);
+
+  // Safari/iOS can suspend Web Audio after an interruption. Resuming from
+  // the next real player gesture keeps synthesized effects working after the
+  // player returns from another app, a phone call, or a portal overlay.
+  const resumeAudio = () => {
+    const context = game.sound?.context;
+    if (context?.state === 'suspended') context.resume().catch(() => {});
+  };
+  document.addEventListener('touchend', resumeAudio, { passive: true });
+  document.addEventListener('click', resumeAudio, { passive: true });
 }
 
 startGame();
