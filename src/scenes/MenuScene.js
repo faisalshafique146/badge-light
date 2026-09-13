@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import portalBridge from '../platform/PortalBridge.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -7,6 +8,7 @@ export default class MenuScene extends Phaser.Scene {
 
   create() {
     const cam = this.cameras.main;
+    portalBridge.gameplayStop();
 
     this.add.rectangle(0, 0, cam.width, cam.height, 0x1a1a2e).setOrigin(0, 0);
 
@@ -31,8 +33,26 @@ export default class MenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5);
 
+    const bestScore = portalBridge.getNumber('best-score', 0);
+    const controls = [
+      'MOVE  Arrows / WASD    ATTACK  Space',
+      'SWITCH  X    KIOSK  Z / C',
+      'PAUSE  P    MUTE  M',
+      'Touch: d-pad + B / S / USE',
+      bestScore > 0 ? `BEST SCORE  ${bestScore}` : '',
+    ].filter(Boolean);
+
+    this.add
+      .text(cam.width / 2, cam.height / 2 + 54, controls.join('\n'), {
+        fontSize: '7px',
+        color: '#cfd3df',
+        align: 'center',
+        lineSpacing: 3,
+      })
+      .setOrigin(0.5, 0.5);
+
     const startPrompt = this.add
-      .text(cam.width / 2, cam.height - 30, 'Press any key or tap to start', {
+      .text(cam.width / 2, cam.height - 22, 'Press any key or tap to start', {
         fontSize: '9px',
         color: '#aaaaaa',
       })
@@ -49,6 +69,11 @@ export default class MenuScene extends Phaser.Scene {
 
     this.input.keyboard.once('keydown', this.startGame, this);
     this.input.once('pointerdown', this.startGame, this);
+
+    // Used only for automated release screenshots and smoke tests.
+    if (new URLSearchParams(window.location.search).has('capture')) {
+      this.startGame();
+    }
   }
 
   startGame() {

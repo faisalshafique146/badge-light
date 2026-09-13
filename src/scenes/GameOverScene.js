@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import portalBridge from '../platform/PortalBridge.js';
 
 export default class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -11,7 +12,12 @@ export default class GameOverScene extends Phaser.Scene {
    */
   init(data) {
     this.outcome = data?.outcome ?? 'loss';
-    this.score = data?.score ?? { enemiesDefeated: 0, kiosksPowered: 0 };
+    this.score = data?.score ?? {
+      enemiesDefeated: 0,
+      kiosksPowered: 0,
+      total: 0,
+      best: portalBridge.getNumber('best-score', 0),
+    };
   }
 
   create() {
@@ -37,11 +43,14 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5);
 
-    const totalScore = this.score.enemiesDefeated + this.score.kiosksPowered;
+    const totalScore = this.score.total ?? (
+      this.score.enemiesDefeated * 100 + this.score.kiosksPowered * 250
+    );
     const scoreLines = [
       `Enemies defeated: ${this.score.enemiesDefeated}`,
-      `Kiosks kept powered: ${this.score.kiosksPowered}`,
+      `Kiosks powered: ${this.score.kiosksPowered}/4`,
       `Total score: ${totalScore}`,
+      `Best score: ${this.score.best ?? totalScore}`,
     ];
     this.add
       .text(cam.width / 2, cam.height / 2 + 34, scoreLines.join('\n'), {
@@ -69,12 +78,26 @@ export default class GameOverScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 0.5);
 
+    this.enableRestartAfterAd(restartButton);
+  }
+
+  async enableRestartAfterAd(restartButton) {
+    this.input.enabled = false;
+    const restoreMute = () => {
+      this.sound.mute = portalBridge.getBoolean('muted', false) || portalBridge.mustMuteAudio();
+    };
+
+    await portalBridge.showMidgameAd({
+      onStarted: () => { this.sound.mute = true; },
+      onFinished: restoreMute,
+    });
+    restoreMute();
+
+    if (!this.sys.isActive()) return;
+    this.input.enabled = true;
     restartButton.on('pointerover', () => restartButton.setStyle({ color: '#ffe066' }));
     restartButton.on('pointerout', () => restartButton.setStyle({ color: '#ffffff' }));
     restartButton.on('pointerdown', () => this.restart());
-
-    // ENTER as a keyboard shortcut for the same action, for anyone not
-    // using a mouse/touch.
     this.input.keyboard.once('keydown-ENTER', () => this.restart());
   }
 

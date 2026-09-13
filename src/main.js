@@ -6,6 +6,7 @@ import MenuScene from './scenes/MenuScene.js';
 import GameScene from './scenes/GameScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
 import UIScene from './scenes/UIScene.js';
+import portalBridge from './platform/PortalBridge.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -46,4 +47,10 @@ const config = {
   scene: [BootScene, PreloadScene, MenuScene, GameScene, GameOverScene, UIScene],
 };
 
-new Phaser.Game(config);
+async function startGame() {
+  await portalBridge.init();
+  portalBridge.loadingStart();
+  new Phaser.Game(config);
+}
+
+startGame();

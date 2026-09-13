@@ -34,7 +34,8 @@ export default class UIScene extends Phaser.Scene {
 
     this.buildHud();
     this.buildTouchControls();
-    this.buildInstructionsOverlay();
+    this.buildSystemControls();
+    this.buildPauseOverlay();
     this.wireGameEvents();
 
     this.layout();
@@ -170,6 +171,20 @@ export default class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(2001);
 
+    this.useButton = this.add
+      .circle(0, 0, ACTION_BUTTON_RADIUS, buttonStyle.fillColor, buttonStyle.fillAlpha)
+      .setStrokeStyle(1, buttonStyle.strokeColor, buttonStyle.strokeAlpha)
+      .setScrollFactor(0)
+      .setDepth(2000)
+      .setInteractive();
+    this.useButton.on('pointerdown', () => this.events.emit('touch-use'));
+
+    this.useLabel = this.add
+      .text(0, 0, 'USE', { fontSize: '6px', color: '#ffffff' })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(2001);
+
     this.setTouchControlsVisible(this.touchControlsVisible);
 
     this.input.off('pointerdown', this.handleGlobalPointerDown, this)
@@ -194,8 +209,80 @@ export default class UIScene extends Phaser.Scene {
     Object.values(this.dpadLabels).forEach((label) => label.setVisible(visible));
     this.broomButton.setVisible(visible);
     this.scannerButton.setVisible(visible);
+    this.useButton.setVisible(visible);
     this.broomLabel.setVisible(visible);
     this.scannerLabel.setVisible(visible);
+    this.useLabel.setVisible(visible);
+  }
+
+  buildSystemControls() {
+    const style = {
+      fontSize: '7px',
+      color: '#ffffff',
+      backgroundColor: '#25283a',
+      padding: { x: 3, y: 2 },
+    };
+
+    this.muteButton = this.add
+      .text(0, 0, 'SND', style)
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(2100)
+      .setInteractive({ useHandCursor: true });
+    this.muteButton.on('pointerdown', () => this.events.emit('toggle-mute'));
+
+    this.pauseButton = this.add
+      .text(0, 0, 'II', style)
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(2100)
+      .setInteractive({ useHandCursor: true });
+    this.pauseButton.on('pointerdown', () => this.events.emit('toggle-pause'));
+  }
+
+  buildPauseOverlay() {
+    const cam = this.cameras.main;
+    this.pauseBg = this.add
+      .rectangle(0, 0, cam.width, cam.height, 0x000000, 0.78)
+      .setOrigin(0, 0)
+      .setScrollFactor(0)
+      .setDepth(2500)
+      .setVisible(false);
+    this.pauseText = this.add
+      .text(cam.width / 2, cam.height / 2, 'PAUSED\n\nPress P or tap to resume', {
+        fontSize: '12px',
+        color: '#ffe066',
+        align: 'center',
+        lineSpacing: 4,
+      })
+      .setOrigin(0.5, 0.5)
+      .setScrollFactor(0)
+      .setDepth(2501)
+      .setVisible(false);
+  }
+
+  handlePauseChanged(paused) {
+    this.pauseBg.setVisible(paused);
+    this.pauseText.setVisible(paused);
+    if (paused) {
+      this.pauseBg.setInteractive();
+      this.pauseBg.once('pointerdown', () => this.events.emit('toggle-pause'));
+    } else {
+      this.pauseBg.disableInteractive();
+    }
+  }
+
+  handleMuteChanged(muted) {
+    this.muteButton.setText(muted ? 'MUTE' : 'SND');
+    this.layout();
+  }
+
+  emitTogglePause() {
+    this.events.emit('toggle-pause');
+  }
+
+  emitToggleMute() {
+    this.events.emit('toggle-mute');
   }
 
   buildInstructionsOverlay() {
@@ -262,6 +349,10 @@ export default class UIScene extends Phaser.Scene {
     this.gameScene.events.on('ammo-changed', this.handleAmmoChanged, this);
     this.gameScene.events.on('light-changed', this.handleLightChanged, this);
     this.gameScene.events.on('time-changed', this.handleTimeChanged, this);
+    this.events.on('pause-state-changed', this.handlePauseChanged, this);
+    this.events.on('mute-state-changed', this.handleMuteChanged, this);
+    this.input.keyboard.on('keydown-P', this.emitTogglePause, this);
+    this.input.keyboard.on('keydown-M', this.emitToggleMute, this);
   }
 
   unwireGameEvents() {
@@ -271,6 +362,10 @@ export default class UIScene extends Phaser.Scene {
     this.gameScene.events.off('ammo-changed', this.handleAmmoChanged, this);
     this.gameScene.events.off('light-changed', this.handleLightChanged, this);
     this.gameScene.events.off('time-changed', this.handleTimeChanged, this);
+    this.events.off('pause-state-changed', this.handlePauseChanged, this);
+    this.events.off('mute-state-changed', this.handleMuteChanged, this);
+    this.input.keyboard.off('keydown-P', this.emitTogglePause, this);
+    this.input.keyboard.off('keydown-M', this.emitToggleMute, this);
     this.scale.off('resize', this.layout, this);
   }
 
@@ -359,8 +454,16 @@ export default class UIScene extends Phaser.Scene {
     const actionX = cam.width - 22;
     this.broomButton.setPosition(actionX, cam.height - 48);
     this.scannerButton.setPosition(actionX, cam.height - 16);
+    this.useButton.setPosition(actionX - 34, cam.height - 16);
     this.broomLabel.setPosition(this.broomButton.x, this.broomButton.y);
     this.scannerLabel.setPosition(this.scannerButton.x, this.scannerButton.y);
+    this.useLabel.setPosition(this.useButton.x, this.useButton.y);
+
+    this.pauseButton.setPosition(cam.width - 4, 24);
+    this.muteButton.setPosition(this.pauseButton.x - this.pauseButton.width - 4, 24);
+
+    this.pauseBg.setSize(cam.width, cam.height);
+    this.pauseText.setPosition(cam.width / 2, cam.height / 2);
 
     if (this.instructionsBg) {
       this.instructionsBg.setSize(cam.width, cam.height);

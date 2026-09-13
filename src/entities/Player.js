@@ -43,6 +43,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     this.actionLock = false;
 
     this.cursors = scene.input.keyboard.createCursorKeys();
+    this.wasd = scene.input.keyboard.addKeys({
+      up: 'W',
+      down: 'S',
+      left: 'A',
+      right: 'D',
+    });
 
     this.registerAnimations(scene);
     this.play('clerk-idle-down');
@@ -123,10 +129,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     let vx = 0;
     let vy = 0;
 
-    const left = cursors.left.isDown || touchDirection.left;
-    const right = cursors.right.isDown || touchDirection.right;
-    const up = cursors.up.isDown || touchDirection.up;
-    const down = cursors.down.isDown || touchDirection.down;
+    const left = cursors.left.isDown || this.wasd.left.isDown || touchDirection.left;
+    const right = cursors.right.isDown || this.wasd.right.isDown || touchDirection.right;
+    const up = cursors.up.isDown || this.wasd.up.isDown || touchDirection.up;
+    const down = cursors.down.isDown || this.wasd.down.isDown || touchDirection.down;
 
     if (left) {
       vx = -this.speed;

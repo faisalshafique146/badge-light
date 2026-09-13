@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Badge Light cover exporter</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050914; }
+      img { display: block; width: 100vw; height: 100vh; object-fit: cover; }
+    </style>
+  </head>
+  <body>
+    <img id="cover" alt="" />
+    <script>
+      const sources = {
+        landscape: 'badge-light-cover-landscape-source.png',
+        portrait: 'badge-light-cover-portrait-source.png',
+        square: 'badge-light-cover-square-source.png',
+        itch: 'badge-light-cover-itch-source.png'
+      };
+      document.querySelector('#cover').src = sources[location.hash.slice(1)] || sources.landscape;
+    </script>
+  </body>
+</html>

@@ -23,6 +23,7 @@ export default class Kiosk extends Phaser.Physics.Arcade.Sprite {
 
     this.active = false;
     this.activeTimer = 0;
+    this.scoredThisRun = false;
 
     this.registerAnimations(scene);
     this.play('kiosk-idle');

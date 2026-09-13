@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import portalBridge from '../platform/PortalBridge.js';
 
 // Every asset is imported as a module rather than referenced by a bare
 // path string. That's what makes them visible to Vite's asset
@@ -84,6 +85,7 @@ export default class PreloadScene extends Phaser.Scene {
   }
 
   create() {
+    portalBridge.loadingStop();
     this.scene.start('MenuScene');
   }
 }

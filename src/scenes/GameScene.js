@@ -6,6 +6,7 @@ import CombatSystem from '../systems/CombatSystem.js';
 import Spawner from '../systems/Spawner.js';
 import LootSystem from '../systems/LootSystem.js';
 import FXSystem from '../systems/FXSystem.js';
+import portalBridge from '../platform/PortalBridge.js';
 
 // How much a single battery refills lightRadius by (see LightSystem's
 // maxLightRadius of 120 — two batteries roughly refill from empty).
@@ -13,6 +14,12 @@ const BATTERY_REFILL_AMOUNT = 60;
 
 // Win condition: survive until this countdown reaches zero.
 const SUNRISE_DURATION_MS = 3 * 60 * 1000; // 3 minutes
+
+const SCORE_VALUES = {
+  enemy: 100,
+  kiosk: 250,
+  win: 1000,
+};
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -28,6 +35,9 @@ export default class GameScene extends Phaser.Scene {
     this.score = { enemiesDefeated: 0, kiosksPowered: 0 };
     this.lastHudState = { hp: null, batteries: null, ammo: null };
     this.touchDirection = { up: false, down: false, left: false, right: false };
+    this.isGamePaused = false;
+    this.autoPaused = false;
+    this.userMuted = portalBridge.getBoolean('muted', false);
 
     const map = this.make.tilemap({ key: 'mall-map' });
     const tileset = map.addTilesetImage('mall-tiles', 'mall-tiles');
@@ -66,6 +76,11 @@ export default class GameScene extends Phaser.Scene {
     this.lootSystem = new LootSystem(this, this.player);
     this.fxSystem = new FXSystem(this, this.player);
 
+    this.removeAudioPolicyListener = portalBridge.onAudioPolicyChange(() => {
+      this.applyMuteState();
+    });
+    this.applyMuteState();
+
     this.zKey = this.input.keyboard.addKey('Z');
     this.cKey = this.input.keyboard.addKey('C');
 
@@ -73,10 +88,12 @@ export default class GameScene extends Phaser.Scene {
 
     // Rendering continues (so the mall is visible behind the
     // instructions overlay) but update() — spawner, enemy AI, contact
-    // damage, the sunrise countdown — doesn't run until UIScene's
-    // instructions overlay is dismissed and resumes this scene.
+    // UIScene remains active if GameScene is paused, so its pause and
+    // mute controls can always receive input.
     this.scene.launch('UIScene');
-    this.scene.pause();
+    this.visibilityHandler = () => this.handleVisibilityChange();
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+    portalBridge.gameplayStart();
   }
 
   /**
@@ -103,6 +120,12 @@ export default class GameScene extends Phaser.Scene {
       .on('touch-broom', this.handleTouchBroom, this);
     uiScene.events.off('touch-scanner', this.handleTouchScanner, this)
       .on('touch-scanner', this.handleTouchScanner, this);
+    uiScene.events.off('touch-use', this.handleTouchUse, this)
+      .on('touch-use', this.handleTouchUse, this);
+    uiScene.events.off('toggle-pause', this.togglePause, this)
+      .on('toggle-pause', this.togglePause, this);
+    uiScene.events.off('toggle-mute', this.toggleMute, this)
+      .on('toggle-mute', this.toggleMute, this);
 
     // Fired once UIScene has subscribed to hp-changed/battery-changed/
     // etc. — pushing the starting HUD values at that point (rather
@@ -134,25 +157,31 @@ export default class GameScene extends Phaser.Scene {
 
   handleKioskInteraction() {
     this.kiosks.forEach((kiosk) => {
-      const inRange = kiosk.isPlayerInRange(this.player);
-
-      if (inRange && Phaser.Input.Keyboard.JustDown(this.zKey) && !kiosk.active) {
-        kiosk.activate();
-        this.score.kiosksPowered += 1;
-        this.events.emit('kiosk-activated', kiosk.x, kiosk.y);
-      }
-
-      if (
-        inRange &&
-        kiosk.active &&
-        Phaser.Input.Keyboard.JustDown(this.cKey) &&
-        this.player.batteryCount > 0
-      ) {
-        this.player.batteryCount -= 1;
-        this.lightSystem.refill(BATTERY_REFILL_AMOUNT);
-        kiosk.extend();
-      }
+      if (!kiosk.isPlayerInRange(this.player)) return;
+      if (Phaser.Input.Keyboard.JustDown(this.zKey)) this.activateKiosk(kiosk);
+      if (Phaser.Input.Keyboard.JustDown(this.cKey)) this.feedKiosk(kiosk);
     });
+  }
+
+  activateKiosk(kiosk) {
+    if (kiosk.active) return false;
+
+    kiosk.activate();
+    if (!kiosk.scoredThisRun) {
+      kiosk.scoredThisRun = true;
+      this.score.kiosksPowered += 1;
+    }
+    this.events.emit('kiosk-activated', kiosk.x, kiosk.y);
+    return true;
+  }
+
+  feedKiosk(kiosk) {
+    if (!kiosk.active || this.player.batteryCount <= 0) return false;
+
+    this.player.batteryCount -= 1;
+    this.lightSystem.refill(BATTERY_REFILL_AMOUNT);
+    kiosk.extend();
+    return true;
   }
 
   handleEnemyContact(player, enemy) {
@@ -181,6 +210,66 @@ export default class GameScene extends Phaser.Scene {
     this.combatSystem.fireScanner(this.time.now);
   }
 
+  handleTouchUse() {
+    const kiosk = this.kiosks.find((candidate) => candidate.isPlayerInRange(this.player));
+    if (!kiosk) return;
+
+    if (!kiosk.active) this.activateKiosk(kiosk);
+    else this.feedKiosk(kiosk);
+  }
+
+  applyMuteState() {
+    const muted = this.userMuted || portalBridge.mustMuteAudio();
+    this.sound.mute = muted;
+    this.fxSystem?.setMuted(muted);
+    this.scene.get('UIScene')?.events.emit('mute-state-changed', muted);
+  }
+
+  toggleMute() {
+    if (portalBridge.mustMuteAudio()) return;
+    this.userMuted = !this.userMuted;
+    portalBridge.setBoolean('muted', this.userMuted);
+    this.applyMuteState();
+  }
+
+  setPaused(paused, reportToPortal = true) {
+    if (this.gameEnded || paused === this.isGamePaused) return;
+    this.isGamePaused = paused;
+
+    const uiScene = this.scene.get('UIScene');
+    uiScene.events.emit('pause-state-changed', paused);
+
+    if (paused) {
+      if (reportToPortal) portalBridge.gameplayStop();
+      this.scene.pause();
+    } else {
+      this.scene.resume();
+      portalBridge.gameplayStart();
+    }
+  }
+
+  togglePause() {
+    this.autoPaused = false;
+    this.setPaused(!this.isGamePaused);
+  }
+
+  handleVisibilityChange() {
+    if (document.hidden) {
+      if (!this.isGamePaused && !this.gameEnded) {
+        this.autoPaused = true;
+        this.setPaused(true);
+      }
+    }
+  }
+
+  calculateScore(outcome) {
+    return (
+      this.score.enemiesDefeated * SCORE_VALUES.enemy +
+      this.score.kiosksPowered * SCORE_VALUES.kiosk +
+      (outcome === 'win' ? SCORE_VALUES.win : 0)
+    );
+  }
+
   /**
    * Single choke point for both win and loss transitions. Guarded by
    * gameEnded so a timer-expiry win and a same-frame death can't both
@@ -193,6 +282,17 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameEnded) return;
     this.gameEnded = true;
 
+    portalBridge.gameplayStop();
+    const totalScore = this.calculateScore(outcome);
+    const bestScore = Math.max(totalScore, portalBridge.getNumber('best-score', 0));
+    portalBridge.setNumber('best-score', bestScore);
+    portalBridge.setNumber('runs-played', portalBridge.getNumber('runs-played', 0) + 1);
+    portalBridge.reportRun({
+      outcome,
+      totalScore,
+      ...this.score,
+    });
+
     this.physics.world.resume();
     this.tweens.resumeAll();
     if (this.fxSystem) this.fxSystem.hitStopActive = false;
@@ -201,7 +301,7 @@ export default class GameScene extends Phaser.Scene {
       this.scene.stop('UIScene');
       this.scene.start('GameOverScene', {
         outcome,
-        score: { ...this.score },
+        score: { ...this.score, total: totalScore, best: bestScore },
       });
     });
   }
@@ -215,6 +315,10 @@ export default class GameScene extends Phaser.Scene {
    */
   cleanup() {
     try {
+      if (this.visibilityHandler) {
+        document.removeEventListener('visibilitychange', this.visibilityHandler);
+      }
+      this.removeAudioPolicyListener?.();
       this.kiosks?.forEach((kiosk) => kiosk.destroy());
       this.lightSystem?.destroy();
       this.combatSystem?.destroy();
@@ -246,6 +350,10 @@ export default class GameScene extends Phaser.Scene {
       this.events.emit('ammo-changed', ammo);
       last.ammo = ammo;
     }
+
+    const uiScene = this.scene.get('UIScene');
+    uiScene.events.emit('pause-state-changed', this.isGamePaused);
+    uiScene.events.emit('mute-state-changed', this.sound.mute);
   }
 
   update(time, delta) {

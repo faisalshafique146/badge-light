@@ -1,6 +1,33 @@
 import { defineConfig } from 'vite';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 
+const PORTALS = new Set(['itch', 'crazygames', 'kongregate']);
+
+function portalSdkPlugin(portal) {
+  return {
+    name: 'badge-light-portal-sdk',
+    transformIndexHtml() {
+      if (portal === 'crazygames') {
+        return [{
+          tag: 'script',
+          attrs: { src: 'https://sdk.crazygames.com/crazygames-sdk-v3.js' },
+          injectTo: 'head-prepend',
+        }];
+      }
+
+      if (portal === 'kongregate') {
+        return [{
+          tag: 'script',
+          attrs: { src: 'https://cdn1.kongregate.com/javascripts/kongregate_api.js' },
+          injectTo: 'head-prepend',
+        }];
+      }
+
+      return [];
+    },
+  };
+}
+
 // Badge Light ships as a single self-contained HTML file (a delivery
 // requirement — see ASSET_PLAN.md's "single-file build" note). Two
 // things have to be true together for that to work:
@@ -18,11 +45,19 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 //
 // Together: npm run build produces exactly one file, dist/index.html,
 // with zero references to anything outside itself.
-export default defineConfig({
-  plugins: [viteSingleFile()],
-  build: {
-    assetsInlineLimit: 100 * 1024 * 1024, // 100MB — effectively "always inline"
-    cssCodeSplit: false,
-    reportCompressedSize: true, // shows the real, gzip-able size in build output
-  },
+export default defineConfig(({ mode }) => {
+  const portal = PORTALS.has(mode) ? mode : 'generic';
+
+  return {
+    plugins: [portalSdkPlugin(portal), viteSingleFile()],
+    define: {
+      __PORTAL__: JSON.stringify(portal),
+    },
+    build: {
+      assetsInlineLimit: 100 * 1024 * 1024, // 100MB — effectively "always inline"
+      cssCodeSplit: false,
+      reportCompressedSize: true, // shows the real, gzip-able size in build output
+      outDir: portal === 'generic' ? 'dist' : `release/${portal}`,
+    },
+  };
 });
